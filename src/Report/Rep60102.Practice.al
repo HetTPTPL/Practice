@@ -25,6 +25,7 @@ report 60102 Practice
             column(CummSalesQty; CummSalesQty) { }
             column(RatePerKg; RatePerKg) { }
             column(TotalValue; TotalValue) { }
+            column(CustomerGrandTotal; CustomerGrandTotal) { }
 
             trigger OnPreDataItem()
             begin
@@ -38,6 +39,7 @@ report 60102 Practice
             trigger OnAfterGetRecord()
             var
                 ItemRec: Record Item;
+                ILECustomer: Record "Item Ledger Entry";
             begin
                 Clear(DailySalesQty);
                 Clear(CummSalesQty);
@@ -57,6 +59,18 @@ report 60102 Practice
 
                 if CummSalesQty <> 0 then
                     RatePerKg := TotalValue / CummSalesQty;
+
+                CustomerGrandTotal := 0;
+                ILECustomer.Reset();
+                ILECustomer.SetRange("Source No.", "Source No.");
+                ILECustomer.SetRange("Posting Date", StartDate, EndDate);
+                ILECustomer.SetRange("Document Type", ILECustomer."Document Type"::"Sales Shipment");
+                ILECustomer.SetRange("Source Type", ILECustomer."Source Type"::Customer);
+                if ILECustomer.FindSet() then
+                    repeat
+                        ILECustomer.CalcFields("Sales Amount (Actual)");
+                        CustomerGrandTotal += ILECustomer."Sales Amount (Actual)";
+                    until ILECustomer.Next() = 0;
             end;
         }
     }
@@ -87,6 +101,7 @@ report 60102 Practice
         TotalValue: Decimal;
         RatePerKg: Decimal;
         ItemName: Text[100];
+        CustomerGrandTotal: Decimal;
 
     local procedure CalcSumQty(ItemNo: Code[20]; SourceNo: Code[20]; FromDate: Date; ToDate: Date): Decimal
     var
